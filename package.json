@@ -1,0 +1,36 @@
+{
+  "name": "uk-climate-visualizer",
+  "version": "1.0.0",
+  "description": "Interactive visualization of UK climate data and sea level rise with real-time projections",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "climate",
+    "visualization",
+    "uk",
+    "sea-level",
+    "leaflet",
+    "met-office",
+    "environmental",
+    "interactive-map"
+  ],
+  "author": "catrionawalsh27",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/catrionawalsh27/uk-climate-visualizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/catrionawalsh27/uk-climate-visualizer/issues"
+  },
+  "homepage": "https://github.com/catrionawalsh27/uk-climate-visualizer#readme",
+  "dependencies": {},
+  "devDependencies": {}
+}

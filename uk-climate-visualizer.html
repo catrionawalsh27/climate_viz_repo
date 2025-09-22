@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UK Climate & Sea Level Rise Visualizer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Source Sans Pro', Arial, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+        
+        .met-office-header {
+            background: #003366;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .met-office-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .met-office-header .subtitle {
+            font-size: 14px;
+            color: #b3c7d9;
+            margin-top: 5px;
+        }
+        
+        .main-container {
+            height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .top-section {
+            height: 50vh;
+            display: flex;
+            border-bottom: 2px solid #003366;
+        }
+        
+        .sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e5e5e5;
+            padding: 0;
+            overflow-y: auto;
+            box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+        }
+        
+        .sidebar-content {
+            padding: 20px;
+        }
+        
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: #f8f9fa;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        
+        .bottom-section {
+            height: 50vh;
+            background: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .regions-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            color: #003366;
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #00aa44;
+        }
+        
+        .controls {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #003366;
+            font-size: 14px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e5e5;
+            outline: none;
+            transition: background 0.2s;
+        }
+        
+        .slider:hover {
+            background: #d4d4d4;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00aa44;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00aa44;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+            font-family: inherit;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #00aa44;
+            box-shadow: 0 0 0 2px rgba(0, 170, 68, 0.2);
+        }
+        
+        .year-display {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin: 15px 0;
+            color: #003366;
+            background: white;
+            border: 2px solid #00aa44;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
+        .sea-level-display {
+            font-size: 16px;
+            text-align: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border: 1px solid #0077cc;
+            border-radius: 6px;
+            color: #003366;
+        }
+        
+        .stats {
+            margin-top: 25px;
+        }
+        
+        .stat-item {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            border-left: 4px solid #00aa44;
+        }
+        
+        .stat-item strong {
+            color: #003366;
+            font-weight: 700;
+        }
+        
+        .legend {
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        
+        .legend h3 {
+            color: #003366;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            border-radius: 2px;
+            border: 1px solid #ddd;
+        }
+        
+        .play-button {
+            background: #00aa44;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin: 15px 0;
+            transition: background-color 0.2s;
+            font-family: inherit;
+        }
+        
+        .play-button:hover {
+            background: #008833;
+        }
+        
+        .info-panel {
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .info-panel h4 {
+            color: #003366;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+        }
+        
+        .flooding-controls {
+            margin-top: 25px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+        }
+        
+        .flooding-controls h3 {
+            color: #003366;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+        }
+        
+        .checkbox-group {
+            margin: 12px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.1);
+            accent-color: #00aa44;
+        }
+        
+        .checkbox-group label {
+            font-size: 14px;
+            color: #333;
+            font-weight: 400;
+        }
+        
+        .flooding-legend {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e5e5;
+            font-size: 13px;
+        }
+        
+        .flood-legend-item {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+        }
+        
+        .flood-legend-color {
+            width: 14px;
+            height: 14px;
+            margin-right: 8px;
+            border-radius: 2px;
+            border: 1px solid #ddd;
+        }
+        
+        /* House Submersion Styles */
+        .region-panel {
+            background: white;
+            border: 1px solid #e5e5e5;
+            border-radius: 6px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .region-title {
+            color: #003366;
+            font-size: 16px;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #00aa44;
+        }
+        
+        .house-container {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #4682B4 100%);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .ground-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #8B4513;
+            border-top: 2px solid #654321;
+        }
+        
+        .house {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 100px;
+            z-index: 10;
+        }
+        
+        .house-base {
+            position: absolute;
+            bottom: 0;
+            width: 80px;
+            height: 60px;
+            background: #CD853F;
+            border: 2px solid #8B4513;
+        }
+        
+        .house-roof {
+            position: absolute;
+            bottom: 50px;
+            left: -10px;
+            width: 0;
+            height: 0;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-bottom: 40px solid #8B0000;
+            border-top: 2px solid #654321;
+        }
+        
+        .house-door {
+            position: absolute;
+            bottom: 5px;
+            left: 30px;
+            width: 20px;
+            height: 30px;
+            background: #654321;
+            border: 1px solid #8B4513;
+        }
+        
+        .house-window {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #87CEEB;
+            border: 1px solid #4682B4;
+        }
+        
+        .window-1 {
+            bottom: 35px;
+            left: 10px;
+        }
+        
+        .window-2 {
+            bottom: 35px;
+            right: 10px;
+        }
+        
+        .window-3 {
+            bottom: 15px;
+            left: 10px;
+        }
+        
+        .window-4 {
+            bottom: 15px;
+            right: 10px;
+        }
+        
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(65, 105, 225, 0.8);
+            transition: height 1s ease-in-out;
+            z-index: 20;
+            border-top: 2px solid #4169E1;
+        }
+        
+        .water-surface {
+            position: absolute;
+            top: -2px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, 
+                rgba(135, 206, 235, 0.8) 0%, 
+                rgba(70, 130, 180, 0.9) 50%, 
+                rgba(135, 206, 235, 0.8) 100%);
+            animation: water-flow 2s ease-in-out infinite;
+        }
+        
+        @keyframes water-flow {
+            0%, 100% {
+                transform: translateX(-10px);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateX(10px);
+                opacity: 1;
+            }
+        }
+        
+        .region-stats {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .region-stats strong {
+            color: #003366;
+        }
+        
+        .submersion-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+        }
+        
+        .submersion-level {
+            font-weight: 600;
+            color: #003366;
+        }
+        
+        .submersion-status {
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .status-safe { background: #00aa44; }
+        .status-warning { background: #ff8800; }
+        .status-danger { background: #cc0000; }
+    </style>
+</head>
+<body>
+    <div class="met-office-header">
+        <h1>UK Climate & Sea Level Rise Visualizer</h1>
+        <div class="subtitle">Interactive climate data visualization | Met Office Climate Dashboard style</div>
+    </div>
+    
+    <div class="main-container">
+        <div class="top-section">
+            <div class="sidebar">
+                <div class="sidebar-content">
+                    <h2 class="section-title">Controls & Settings</h2>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="scenarioSelect">Climate Scenario</label>
+                    <select id="scenarioSelect" style="width: 100%; padding: 5px; border-radius: 3px; background: rgba(255,255,255,0.9); border: none;">
+                        <option value="historical">Historical Data Only (1993-2020)</option>
+                        <option value="conservative">Conservative Scenario (to 2050)</option>
+                        <option value="moderate" selected>Moderate Scenario (to 2050)</option>
+                        <option value="aggressive">High Emissions Scenario (to 2050)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="yearSlider">Year</label>
+                    <input type="range" id="yearSlider" class="slider" min="1993" max="2050" value="2020" step="1">
+                    <div class="year-display" id="yearDisplay">2020</div>
+                </div>
+                
+                <div class="control-group">
+                    <button class="play-button" id="playButton">▶ Play Animation</button>
+                </div>
+                
+                <div class="sea-level-display">
+                    Sea Level Rise: <span id="seaLevelValue">+72.19mm</span>
+                    <br><small>relative to 1993 baseline</small>
+                    <br><small id="dataType">Historical Data</small>
+                </div>
+            </div>
+            
+            <div class="legend" id="legendContainer">
+                <h3>Sea Level Rise Impact</h3>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #006400;"></div>
+                    <span>Safe (Below baseline)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #228B22;"></div>
+                    <span>Minimal Risk (0-20mm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #32CD32;"></div>
+                    <span>Low-Medium Risk (20-40mm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FFD700;"></div>
+                    <span>Medium Risk (40-60mm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF8C00;"></div>
+                    <span>Medium-High Risk (60-80mm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #FF4500;"></div>
+                    <span>High Risk (80-120mm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #DC143C;"></div>
+                    <span>Very High Risk (120-160mm)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #8B0000;"></div>
+                    <span>Extreme Risk (160mm+)</span>
+                </div>
+                
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3);">
+                    <small><strong>Visual Indicators:</strong></small><br>
+                    <small>• Solid: Historical data</small><br>
+                    <small>• Dashed: Projections</small><br>
+                    <small>• Transparency: Uncertainty</small>
+                </div>
+            </div>
+            
+            <div class="flooding-controls">
+                <h3>Coastline Changes</h3>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showFloodZones" checked>
+                    <label for="showFloodZones">Show Flood Risk Areas</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showCoastlineChange" checked>
+                    <label for="showCoastlineChange">Show Coastline Evolution</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showSubmergedAreas" checked>
+                    <label for="showSubmergedAreas">Highlight Submerged Zones</label>
+                </div>
+                
+                <div class="flooding-legend">
+                    <div class="flood-legend-item">
+                        <div class="flood-legend-color" style="background: rgba(0, 100, 255, 0.3);"></div>
+                        <span>Current Sea Level</span>
+                    </div>
+                    <div class="flood-legend-item">
+                        <div class="flood-legend-color" style="background: rgba(0, 150, 255, 0.5);"></div>
+                        <span>Rising Waters</span>
+                    </div>
+                    <div class="flood-legend-item">
+                        <div class="flood-legend-color" style="background: rgba(255, 0, 0, 0.4);"></div>
+                        <span>Submerged Land</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <h2 class="section-title">Climate Statistics</h2>
+                <div class="stat-item">
+                    <strong>Total Rise Since 1993:</strong><br>
+                    <span id="totalRise">72.19mm</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Average Annual Rise:</strong><br>
+                    <span id="annualRise">2.67mm/year</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Coastal Areas at Risk:</strong><br>
+                    <span id="areasAtRisk">Thames Estuary, Norfolk Broads, Somerset Levels</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Population at Risk:</strong><br>
+                    <span id="populationAtRisk">~1.2M people in flood zones</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Land Area Loss:</strong><br>
+                    <span id="coastlineRetreat">Areas underwater by rising seas</span>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <h2 class="section-title">About This Visualization</h2>
+                <p>This interactive map shows the UK's topography and how rising sea levels impact coastal regions over time. Historical data (1993-2020) comes from the Met Office Climate Dashboard. Future projections are based on IPCC scenarios.</p>
+                <p><strong>Climate Scenarios:</strong></p>
+                <ul>
+                    <li><strong>Conservative (SSP1-1.9):</strong> Strong climate action, 1.5°C target</li>
+                    <li><strong>Moderate (SSP2-4.5):</strong> Middle-of-the-road development</li>
+                    <li><strong>High Emissions (SSP5-8.5):</strong> High fossil fuel use</li>
+                </ul>
+                <p><strong>Key Features:</strong></p>
+                <ul>
+                    <li>Relief map showing UK elevation</li>
+                    <li>Historical vs. projected data comparison</li>
+                    <li>Multiple climate scenarios (to 2050)</li>
+                    <li>Uncertainty visualization for projections</li>
+                    <li>Time-based animation of changes</li>
+                </ul>
+                </div>
+                </div>
+            </div>
+            
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+        
+        <div class="bottom-section">
+            <h2 class="section-title" style="text-align: center; margin-bottom: 30px;">Regional Impact Visualization</h2>
+            <div class="regions-container">
+                <!-- Thames Estuary -->
+                <div class="region-panel">
+                    <h3 class="region-title">Thames Estuary</h3>
+                    <div class="house-container">
+                        <div class="ground-level"></div>
+                        <div class="house">
+                            <div class="house-base"></div>
+                            <div class="house-roof"></div>
+                            <div class="house-door"></div>
+                            <div class="house-window window-1"></div>
+                            <div class="house-window window-2"></div>
+                            <div class="house-window window-3"></div>
+                            <div class="house-window window-4"></div>
+                        </div>
+                        <div class="water-level" id="water-thames">
+                            <div class="water-surface"></div>
+                        </div>
+                    </div>
+                    <div class="submersion-indicator">
+                        <div class="submersion-level" id="level-thames">Sea Level: +0mm</div>
+                        <div class="submersion-status status-safe" id="status-thames">Safe</div>
+                    </div>
+                    <div class="region-stats">
+                        <strong>Population:</strong> 550,000<br>
+                        <strong>Type:</strong> Urban estuary<br>
+                        <strong>Flood threshold:</strong> 50mm rise
+                    </div>
+                </div>
+
+                <!-- Norfolk Broads -->
+                <div class="region-panel">
+                    <h3 class="region-title">Norfolk Broads</h3>
+                    <div class="house-container">
+                        <div class="ground-level"></div>
+                        <div class="house">
+                            <div class="house-base"></div>
+                            <div class="house-roof"></div>
+                            <div class="house-door"></div>
+                            <div class="house-window window-1"></div>
+                            <div class="house-window window-2"></div>
+                            <div class="house-window window-3"></div>
+                            <div class="house-window window-4"></div>
+                        </div>
+                        <div class="water-level" id="water-norfolk">
+                            <div class="water-surface"></div>
+                        </div>
+                    </div>
+                    <div class="submersion-indicator">
+                        <div class="submersion-level" id="level-norfolk">Sea Level: +0mm</div>
+                        <div class="submersion-status status-safe" id="status-norfolk">Safe</div>
+                    </div>
+                    <div class="region-stats">
+                        <strong>Population:</strong> 25,000<br>
+                        <strong>Type:</strong> Wetland<br>
+                        <strong>Flood threshold:</strong> 30mm rise
+                    </div>
+                </div>
+
+                <!-- Somerset Levels -->
+                <div class="region-panel">
+                    <h3 class="region-title">Somerset Levels</h3>
+                    <div class="house-container">
+                        <div class="ground-level"></div>
+                        <div class="house">
+                            <div class="house-base"></div>
+                            <div class="house-roof"></div>
+                            <div class="house-door"></div>
+                            <div class="house-window window-1"></div>
+                            <div class="house-window window-2"></div>
+                            <div class="house-window window-3"></div>
+                            <div class="house-window window-4"></div>
+                        </div>
+                        <div class="water-level" id="water-somerset">
+                            <div class="water-surface"></div>
+                        </div>
+                    </div>
+                    <div class="submersion-indicator">
+                        <div class="submersion-level" id="level-somerset">Sea Level: +0mm</div>
+                        <div class="submersion-status status-safe" id="status-somerset">Safe</div>
+                    </div>
+                    <div class="region-stats">
+                        <strong>Population:</strong> 50,000<br>
+                        <strong>Type:</strong> Agricultural<br>
+                        <strong>Flood threshold:</strong> 40mm rise
+                    </div>
+                </div>
+
+                <!-- Humber Estuary -->
+                <div class="region-panel">
+                    <h3 class="region-title">Humber Estuary</h3>
+                    <div class="house-container">
+                        <div class="ground-level"></div>
+                        <div class="house">
+                            <div class="house-base"></div>
+                            <div class="house-roof"></div>
+                            <div class="house-door"></div>
+                            <div class="house-window window-1"></div>
+                            <div class="house-window window-2"></div>
+                            <div class="house-window window-3"></div>
+                            <div class="house-window window-4"></div>
+                        </div>
+                        <div class="water-level" id="water-humber">
+                            <div class="water-surface"></div>
+                        </div>
+                    </div>
+                    <div class="submersion-indicator">
+                        <div class="submersion-level" id="level-humber">Sea Level: +0mm</div>
+                        <div class="submersion-status status-safe" id="status-humber">Safe</div>
+                    </div>
+                    <div class="region-stats">
+                        <strong>Population:</strong> 280,000<br>
+                        <strong>Type:</strong> Urban estuary<br>
+                        <strong>Flood threshold:</strong> 60mm rise
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Historical sea level data (processed from CSV)
+        const historicalSeaLevelData = {
+            1993: -28.77, 1994: -24.47, 1995: -24.97, 1996: -27.27, 1997: -16.57,
+            1998: -6.37, 1999: -4.77, 2000: -4.87, 2001: -0.47, 2002: 5.03,
+            2003: 7.23, 2004: 11.83, 2005: 10.83, 2006: 12.83, 2007: 13.23,
+            2008: 18.83, 2009: 26.73, 2010: 32.03, 2011: 29.23, 2012: 35.63,
+            2013: 45.43, 2014: 43.23, 2015: 52.43, 2016: 61.13, 2017: 56.93,
+            2018: 61.63, 2019: 67.43, 2020: 72.19
+        };
+        
+        // Climate scenarios for future projections
+        const climateScenarios = {
+            'conservative': {
+                name: 'Conservative (SSP1-1.9)',
+                description: 'Low emissions, strong mitigation',
+                color: '#2E7D32',
+                annualRate: 2.5 // mm/year
+            },
+            'moderate': {
+                name: 'Moderate (SSP2-4.5)',
+                description: 'Middle-of-the-road scenario',
+                color: '#FF8F00',
+                annualRate: 3.2 // mm/year
+            },
+            'aggressive': {
+                name: 'High Emissions (SSP5-8.5)',
+                description: 'High emissions, limited mitigation',
+                color: '#C62828',
+                annualRate: 4.8 // mm/year
+            }
+        };
+        
+        // Generate future projections based on climate scenarios
+        function generateProjections(scenario, baseYear = 2020, baseValue = 72.19) {
+            const projections = {};
+            const rate = climateScenarios[scenario].annualRate;
+            const acceleration = scenario === 'aggressive' ? 0.05 : scenario === 'moderate' ? 0.02 : 0.01;
+            
+            for (let year = baseYear + 1; year <= 2050; year++) {
+                const yearsFromBase = year - baseYear;
+                // Apply exponential growth with acceleration
+                const projectedIncrease = rate * yearsFromBase + (acceleration * Math.pow(yearsFromBase, 1.5));
+                projections[year] = baseValue + projectedIncrease;
+            }
+            return projections;
+        }
+        
+        // Generate all scenario projections
+        const projectedData = {
+            conservative: generateProjections('conservative'),
+            moderate: generateProjections('moderate'),
+            aggressive: generateProjections('aggressive')
+        };
+        
+        // Combined historical and projected data
+        function getSeaLevelData(scenario = 'moderate') {
+            if (scenario === 'historical') {
+                return historicalSeaLevelData;
+            }
+            return { ...historicalSeaLevelData, ...projectedData[scenario] };
+        }
+        
+        // Initialize the map centered on the UK
+        // Create the map with optimized bounds and settings for UK
+        const map = L.map('map', {
+            zoomControl: true,
+            scrollWheelZoom: true,
+            doubleClickZoom: true,
+            boxZoom: true,
+            maxBounds: [[49.5, -8.5], [61.5, 2.5]], // Restrict to UK area
+            maxBoundsViscosity: 0.7,
+            minZoom: 5,
+            maxZoom: 12
+        }).setView([54.5, -3.0], 6);
+        
+        // Add terrain layer optimized for UK visualization
+        L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors, © OpenTopoMap',
+            maxZoom: 12,
+            detectRetina: true
+        }).addTo(map);
+        
+        // UK coastline and vulnerable areas
+        const vulnerableAreas = [
+            {
+                name: "Thames Estuary",
+                coords: [51.5, 0.5],
+                radius: 15000,
+                description: "Major population center at risk"
+            },
+            {
+                name: "Norfolk Broads",
+                coords: [52.7, 1.5],
+                radius: 12000,
+                description: "Low-lying wetland area"
+            },
+            {
+                name: "Somerset Levels",
+                coords: [51.1, -2.8],
+                radius: 10000,
+                description: "Agricultural floodplains"
+            },
+            {
+                name: "Humber Estuary",
+                coords: [53.7, -0.3],
+                radius: 13000,
+                description: "Industrial area and ports"
+            },
+            {
+                name: "Severn Estuary",
+                coords: [51.6, -2.7],
+                radius: 14000,
+                description: "Wide tidal range area"
+            },
+            {
+                name: "Solent",
+                coords: [50.8, -1.3],
+                radius: 8000,
+                description: "Southampton and Portsmouth"
+            }
+        ];
+        
+        // Detailed coastal areas with polygon boundaries for realistic coastline retreat
+        const coastalRegions = [
+            {
+                name: "Thames Estuary",
+                // Polygon points defining the coastline that will retreat
+                originalCoastline: [
+                    [51.55, 0.1], [51.52, 0.3], [51.48, 0.5], [51.45, 0.72], 
+                    [51.52, 0.8], [51.55, 0.6], [51.58, 0.4], [51.55, 0.1]
+                ],
+                // Areas that will be submerged at different sea level rises (in mm)
+                submersionLevels: [
+                    {
+                        threshold: 50, // 5cm rise
+                        floodedAreas: [
+                            [[51.50, 0.55], [51.48, 0.58], [51.49, 0.61], [51.51, 0.58], [51.50, 0.55]], // Canvey Island parts
+                            [[51.45, 0.70], [51.43, 0.73], [51.44, 0.75], [51.46, 0.72], [51.45, 0.70]]  // Isle of Grain parts
+                        ]
+                    },
+                    {
+                        threshold: 100, // 10cm rise
+                        floodedAreas: [
+                            [[51.48, 0.52], [51.46, 0.60], [51.50, 0.65], [51.53, 0.58], [51.48, 0.52]], // Larger Thames areas
+                            [[51.42, 0.68], [51.40, 0.75], [51.45, 0.78], [51.47, 0.70], [51.42, 0.68]]  // More Isle of Grain
+                        ]
+                    },
+                    {
+                        threshold: 150, // 15cm rise - major flooding
+                        floodedAreas: [
+                            [[51.45, 0.45], [51.42, 0.65], [51.50, 0.75], [51.58, 0.60], [51.55, 0.40], [51.45, 0.45]] // Major Thames flooding
+                        ]
+                    }
+                ],
+                population: 550000,
+                type: "urban_estuary"
+            },
+            {
+                name: "Norfolk Broads",
+                originalCoastline: [
+                    [52.9, 1.3], [52.85, 1.5], [52.75, 1.7], [52.7, 1.65], 
+                    [52.72, 1.4], [52.8, 1.25], [52.9, 1.3]
+                ],
+                submersionLevels: [
+                    {
+                        threshold: 30, // Very low-lying wetlands
+                        floodedAreas: [
+                            [[52.75, 1.65], [52.73, 1.67], [52.76, 1.69], [52.78, 1.67], [52.75, 1.65]], // Hickling Broad
+                            [[52.77, 1.67], [52.75, 1.69], [52.78, 1.71], [52.80, 1.68], [52.77, 1.67]]  // Horsey area
+                        ]
+                    },
+                    {
+                        threshold: 80,
+                        floodedAreas: [
+                            [[52.70, 1.55], [52.68, 1.70], [52.80, 1.75], [52.82, 1.60], [52.70, 1.55]] // Major wetland flooding
+                        ]
+                    },
+                    {
+                        threshold: 120,
+                        floodedAreas: [
+                            [[52.65, 1.45], [52.60, 1.75], [52.85, 1.80], [52.88, 1.50], [52.65, 1.45]] // Extensive flooding
+                        ]
+                    }
+                ],
+                population: 25000,
+                type: "wetland"
+            },
+            {
+                name: "Somerset Levels",
+                originalCoastline: [
+                    [51.25, -3.2], [51.2, -3.0], [51.15, -2.8], [51.1, -2.7], 
+                    [51.12, -2.9], [51.18, -3.1], [51.25, -3.2]
+                ],
+                submersionLevels: [
+                    {
+                        threshold: 40,
+                        floodedAreas: [
+                            [[51.18, -3.00], [51.16, -2.98], [51.19, -2.96], [51.21, -2.98], [51.18, -3.00]], // Bridgwater Bay
+                            [[51.15, -2.72], [51.13, -2.70], [51.16, -2.68], [51.18, -2.70], [51.15, -2.72]]  // Glastonbury area
+                        ]
+                    },
+                    {
+                        threshold: 90,
+                        floodedAreas: [
+                            [[51.12, -3.05], [51.10, -2.85], [51.20, -2.80], [51.22, -3.00], [51.12, -3.05]] // Major agricultural flooding
+                        ]
+                    },
+                    {
+                        threshold: 140,
+                        floodedAreas: [
+                            [[51.08, -3.15], [51.05, -2.75], [51.25, -2.70], [51.28, -3.10], [51.08, -3.15]] // Extensive levels flooding
+                        ]
+                    }
+                ],
+                population: 50000,
+                type: "agricultural"
+            },
+            {
+                name: "Humber Estuary",
+                originalCoastline: [
+                    [53.8, -0.5], [53.75, -0.3], [53.7, -0.1], [53.68, -0.2], 
+                    [53.7, -0.4], [53.75, -0.6], [53.8, -0.5]
+                ],
+                submersionLevels: [
+                    {
+                        threshold: 60,
+                        floodedAreas: [
+                            [[53.74, -0.34], [53.72, -0.30], [53.76, -0.28], [53.78, -0.32], [53.74, -0.34]] // Hull outskirts
+                        ]
+                    },
+                    {
+                        threshold: 120,
+                        floodedAreas: [
+                            [[53.70, -0.40], [53.68, -0.20], [53.78, -0.15], [53.80, -0.35], [53.70, -0.40]] // Major Hull flooding
+                        ]
+                    },
+                    {
+                        threshold: 180,
+                        floodedAreas: [
+                            [[53.65, -0.50], [53.60, -0.10], [53.85, -0.05], [53.88, -0.45], [53.65, -0.50]] // Extensive Humber flooding
+                        ]
+                    }
+                ],
+                population: 280000,
+                type: "urban_estuary"
+            }
+        ];
+        
+        let vulnerabilityCircles = [];
+        let floodZoneLayers = [];
+        let coastlineChangeLayers = [];
+        
+        function getColorBySeaLevel(seaLevel, isProjection = false) {
+            let baseColor;
+            if (seaLevel < 0) baseColor = '#006400'; // Dark green for safe
+            else if (seaLevel < 20) baseColor = '#228B22'; // Forest green
+            else if (seaLevel < 40) baseColor = '#32CD32'; // Lime green
+            else if (seaLevel < 60) baseColor = '#FFD700'; // Gold
+            else if (seaLevel < 80) baseColor = '#FF8C00'; // Dark orange
+            else if (seaLevel < 120) baseColor = '#FF4500'; // Orange red
+            else if (seaLevel < 160) baseColor = '#DC143C'; // Crimson
+            else baseColor = '#8B0000'; // Dark red for extreme
+            
+            // Add transparency for projections to show uncertainty
+            return isProjection ? baseColor + '80' : baseColor;
+        }
+        
+        let currentScenario = 'moderate';
+        let currentSeaLevelData = getSeaLevelData(currentScenario);
+        
+        // Calculate which areas would be submerged based on sea level rise
+        function calculateSubmergedAreas(seaLevelRiseMm) {
+            const submergedRegions = [];
+            
+            coastalRegions.forEach(region => {
+                const applicableLevels = region.submersionLevels.filter(level => 
+                    seaLevelRiseMm >= level.threshold
+                );
+                
+                if (applicableLevels.length > 0) {
+                    // Get the highest applicable submersion level
+                    const activeLevel = applicableLevels[applicableLevels.length - 1];
+                    
+                    submergedRegions.push({
+                        name: region.name,
+                        type: region.type,
+                        population: region.population,
+                        submersionLevel: activeLevel,
+                        seaLevelRise: seaLevelRiseMm,
+                        originalCoastline: region.originalCoastline
+                    });
+                }
+            });
+            
+            return submergedRegions;
+        }
+        
+        // Update submerged areas visualization with actual polygon flooding
+        function updateSubmergedAreas(year) {
+            const seaLevel = currentSeaLevelData[year];
+            const baselineLevel = historicalSeaLevelData[1993];
+            const relativeRise = seaLevel - baselineLevel;
+            
+            // Clear existing flood layers
+            floodZoneLayers.forEach(layer => map.removeLayer(layer));
+            floodZoneLayers = [];
+            
+            const showFloodZones = document.getElementById('showFloodZones').checked;
+            const showSubmergedAreas = document.getElementById('showSubmergedAreas').checked;
+            
+            if (!showFloodZones && !showSubmergedAreas) return;
+            
+            const submergedRegions = calculateSubmergedAreas(relativeRise);
+            
+            submergedRegions.forEach(region => {
+                // Create polygon overlays for each flooded area
+                region.submersionLevel.floodedAreas.forEach((polygonCoords, index) => {
+                    
+                    // Different shades of blue for water, getting darker with deeper water
+                    const waterColors = [
+                        'rgba(100, 149, 237, 0.6)', // Light water
+                        'rgba(65, 105, 225, 0.7)',  // Medium water  
+                        'rgba(25, 25, 112, 0.8)'   // Deep water
+                    ];
+                    
+                    const colorIndex = Math.min(index, waterColors.length - 1);
+                    const waterColor = waterColors[colorIndex];
+                    
+                    const polygon = L.polygon(polygonCoords, {
+                        color: '#0066CC',
+                        fillColor: waterColor,
+                        fillOpacity: 0.8,
+                        weight: 2,
+                        opacity: 0.9
+                    }).bindPopup(`
+                        <strong>🌊 ${region.name} - Submerged Area</strong><br>
+                        <em>Type:</em> ${region.type.replace('_', ' ')}<br>
+                        <em>Population at risk:</em> ${region.population.toLocaleString()}<br>
+                        <em>Sea Level Rise:</em> ${relativeRise.toFixed(1)}mm<br>
+                        <em>Flood threshold:</em> ${region.submersionLevel.threshold}mm<br>
+                        <em>Status:</em> ${region.submersionLevel.threshold < 100 ? 'Early flooding' : region.submersionLevel.threshold < 150 ? 'Major flooding' : 'Severe submersion'}<br>
+                        <small><i>This area is now underwater</i></small>
+                    `);
+                    
+                    polygon.addTo(map);
+                    floodZoneLayers.push(polygon);
+                });
+                
+                // Show the original coastline as a reference
+                if (document.getElementById('showCoastlineChange').checked) {
+                    const originalCoastline = L.polyline(region.originalCoastline, {
+                        color: '#2E7D32',
+                        weight: 2,
+                        opacity: 0.7,
+                        dashArray: '8, 8'
+                    }).bindPopup(`
+                        <strong>Original ${region.name} Coastline</strong><br>
+                        <em>Status:</em> Historical (1993)<br>
+                        <small><i>Dashed green line shows original coastline</i></small>
+                    `);
+                    
+                    originalCoastline.addTo(map);
+                    coastlineChangeLayers.push(originalCoastline);
+                }
+            });
+        }
+        
+        // Regional house submersion data
+        const houseRegions = [
+            {
+                id: 'thames',
+                name: 'Thames Estuary',
+                thresholds: [50, 100, 150],
+                population: 550000,
+                maxHeight: 200 // pixels in container
+            },
+            {
+                id: 'norfolk',
+                name: 'Norfolk Broads',
+                thresholds: [30, 80, 120],
+                population: 25000,
+                maxHeight: 200
+            },
+            {
+                id: 'somerset',
+                name: 'Somerset Levels',
+                thresholds: [40, 90, 140],
+                population: 50000,
+                maxHeight: 200
+            },
+            {
+                id: 'humber',
+                name: 'Humber Estuary',
+                thresholds: [60, 120, 180],
+                population: 280000,
+                maxHeight: 200
+            }
+        ];
+        
+        // Update house submersion visualization
+        function updateHouseSubmersion(year, relativeRise) {
+            houseRegions.forEach(region => {
+                const waterElement = document.getElementById(`water-${region.id}`);
+                const levelElement = document.getElementById(`level-${region.id}`);
+                const statusElement = document.getElementById(`status-${region.id}`);
+                
+                if (!waterElement || !levelElement || !statusElement) return;
+                
+                // Calculate water level height based on sea level rise
+                let waterHeight = 0;
+                let status = 'Safe';
+                let statusClass = 'status-safe';
+                
+                if (relativeRise >= region.thresholds[2]) {
+                    // Severe submersion - house roof level
+                    waterHeight = 180; // Almost completely submerged
+                    status = 'Severe';
+                    statusClass = 'status-danger';
+                } else if (relativeRise >= region.thresholds[1]) {
+                    // Major flooding - house windows level
+                    waterHeight = 120; // Up to windows
+                    status = 'Major Flood';
+                    statusClass = 'status-danger';
+                } else if (relativeRise >= region.thresholds[0]) {
+                    // Initial flooding - ground level
+                    waterHeight = 80; // Ground level flooding
+                    status = 'Flooding';
+                    statusClass = 'status-warning';
+                } else if (relativeRise > 0) {
+                    // Minor rise but not yet flooding
+                    waterHeight = Math.min(60, (relativeRise / region.thresholds[0]) * 60);
+                    status = 'Rising';
+                    statusClass = 'status-warning';
+                }
+                
+                // Update water level with smooth animation
+                waterElement.style.height = `${waterHeight}px`;
+                
+                // Update level display
+                levelElement.textContent = `Sea Level: ${relativeRise >= 0 ? '+' : ''}${relativeRise.toFixed(1)}mm`;
+                
+                // Update status
+                statusElement.textContent = status;
+                statusElement.className = `submersion-status ${statusClass}`;
+                
+                // Add visual effects for severe flooding
+                if (waterHeight > 120) {
+                    waterElement.style.background = 'rgba(25, 25, 112, 0.9)';
+                    waterElement.style.borderTop = '3px solid #191970';
+                } else if (waterHeight > 60) {
+                    waterElement.style.background = 'rgba(65, 105, 225, 0.8)';
+                    waterElement.style.borderTop = '2px solid #4169E1';
+                } else {
+                    waterElement.style.background = 'rgba(135, 206, 235, 0.6)';
+                    waterElement.style.borderTop = '1px solid #87CEEB';
+                }
+            });
+        }
+        
+        function updateVisualization(year) {
+            const seaLevel = currentSeaLevelData[year];
+            const baselineLevel = historicalSeaLevelData[1993];
+            const relativeRise = seaLevel - baselineLevel;
+            const isProjection = year > 2020;
+            const isHistorical = currentScenario === 'historical';
+            
+            // Clear existing circles
+            vulnerabilityCircles.forEach(circle => map.removeLayer(circle));
+            vulnerabilityCircles = [];
+            
+            // Add new circles with updated colors and sizes
+            vulnerableAreas.forEach(area => {
+                // Calculate risk multiplier based on sea level rise
+                const riskMultiplier = Math.max(0.3, 1 + (relativeRise / 50));
+                const radius = area.radius * riskMultiplier;
+                
+                const fillOpacity = isProjection ? 0.3 : 0.4;
+                const weight = isProjection ? 1 : 2;
+                
+                const circle = L.circle(area.coords, {
+                    color: getColorBySeaLevel(relativeRise, isProjection),
+                    fillColor: getColorBySeaLevel(relativeRise, isProjection),
+                    fillOpacity: fillOpacity,
+                    radius: radius,
+                    weight: weight,
+                    dashArray: isProjection ? '5, 5' : null
+                }).bindPopup(`
+                    <strong>${area.name}</strong><br>
+                    ${area.description}<br>
+                    <em>Sea Level Rise: ${relativeRise.toFixed(1)}mm</em><br>
+                    <em>Risk Level: ${getRiskLevel(relativeRise)}</em><br>
+                    <em>Data Type: ${isProjection ? 'Projection' : 'Historical'}</em>
+                    ${isProjection ? `<br><small>Scenario: ${climateScenarios[currentScenario].name}</small>` : ''}
+                `);
+                
+                circle.addTo(map);
+                vulnerabilityCircles.push(circle);
+            });
+            
+            // Update UI
+            document.getElementById('yearDisplay').textContent = year;
+            document.getElementById('seaLevelValue').textContent = 
+                `${relativeRise >= 0 ? '+' : ''}${relativeRise.toFixed(1)}mm`;
+            document.getElementById('totalRise').textContent = 
+                `${relativeRise >= 0 ? '+' : ''}${relativeRise.toFixed(1)}mm`;
+            
+            const annualRate = relativeRise / (year - 1993);
+            document.getElementById('annualRise').textContent = `${annualRate.toFixed(2)}mm/year`;
+            
+            // Update data type indicator
+            const dataType = isProjection ? `${climateScenarios[currentScenario].name} Projection` : 'Historical Data';
+            document.getElementById('dataType').textContent = dataType;
+            document.getElementById('dataType').style.color = isProjection ? climateScenarios[currentScenario].color : '#fff';
+            
+            // Update areas at risk
+            const riskLevel = getRiskLevel(relativeRise);
+            document.getElementById('areasAtRisk').innerHTML = 
+                vulnerableAreas.map(area => area.name).join(', ') + `<br><small>(${riskLevel})</small>`;
+            
+            // Calculate and display population at risk
+            const submergedRegions = calculateSubmergedAreas(relativeRise);
+            const totalPopulationAtRisk = submergedRegions.reduce((sum, region) => {
+                return sum + region.population;
+            }, 0);
+            
+            document.getElementById('populationAtRisk').textContent = 
+                `${totalPopulationAtRisk > 1000000 ? (totalPopulationAtRisk / 1000000).toFixed(1) + 'M' : totalPopulationAtRisk > 1000 ? (totalPopulationAtRisk / 1000).toFixed(0) + 'K' : totalPopulationAtRisk.toFixed(0)} people in submerged areas`;
+            
+            // Calculate land area loss
+            const totalSubmergedAreas = submergedRegions.length;
+            const majorRegionsAffected = submergedRegions.filter(r => r.submersionLevel.threshold > 100).length;
+            
+            document.getElementById('coastlineRetreat').textContent = 
+                totalSubmergedAreas > 0 ? `${totalSubmergedAreas} regions affected, ${majorRegionsAffected} severely` : 'No major submersion';
+            
+            // Update submerged areas visualization
+            updateSubmergedAreas(year);
+            
+            // Update house submersion animations
+            updateHouseSubmersion(year, relativeRise);
+        }
+        
+        function getRiskLevel(relativeRise) {
+            if (relativeRise < 0) return 'Below Baseline';
+            if (relativeRise < 20) return 'Minimal Risk';
+            if (relativeRise < 40) return 'Low-Medium Risk';
+            if (relativeRise < 60) return 'Medium Risk';
+            if (relativeRise < 80) return 'Medium-High Risk';
+            if (relativeRise < 120) return 'High Risk';
+            if (relativeRise < 160) return 'Very High Risk';
+            return 'Extreme Risk';
+        }
+        
+        // Event listeners
+        const yearSlider = document.getElementById('yearSlider');
+        const playButton = document.getElementById('playButton');
+        const scenarioSelect = document.getElementById('scenarioSelect');
+        let isPlaying = false;
+        let animationInterval;
+        
+        yearSlider.addEventListener('input', (e) => {
+            const year = parseInt(e.target.value);
+            updateVisualization(year);
+        });
+        
+        scenarioSelect.addEventListener('change', (e) => {
+            currentScenario = e.target.value;
+            currentSeaLevelData = getSeaLevelData(currentScenario);
+            
+            // Update slider max based on scenario
+            const maxYear = currentScenario === 'historical' ? 2020 : 2050;
+            yearSlider.max = maxYear;
+            
+            // If current year is beyond new max, reset to max
+            if (parseInt(yearSlider.value) > maxYear) {
+                yearSlider.value = maxYear;
+            }
+            
+            updateVisualization(parseInt(yearSlider.value));
+            updateLegend();
+        });
+        
+        // Add event listeners for coastline visualization controls
+        document.getElementById('showFloodZones').addEventListener('change', () => {
+            updateVisualization(parseInt(yearSlider.value));
+        });
+        
+        document.getElementById('showCoastlineChange').addEventListener('change', () => {
+            updateVisualization(parseInt(yearSlider.value));
+        });
+        
+        document.getElementById('showSubmergedAreas').addEventListener('change', () => {
+            updateVisualization(parseInt(yearSlider.value));
+        });
+        
+        playButton.addEventListener('click', () => {
+            if (isPlaying) {
+                clearInterval(animationInterval);
+                playButton.textContent = '▶ Play Animation';
+                isPlaying = false;
+            } else {
+                playButton.textContent = '⏸ Pause Animation';
+                isPlaying = true;
+                
+                const maxYear = currentScenario === 'historical' ? 2020 : 2050;
+                let currentYear = parseInt(yearSlider.value);
+                
+                animationInterval = setInterval(() => {
+                    currentYear++;
+                    if (currentYear > maxYear) currentYear = 1993;
+                    
+                    yearSlider.value = currentYear;
+                    updateVisualization(currentYear);
+                }, 500);
+            }
+        });
+        
+        // Add UK border outline with better visibility
+        const ukBounds = [
+            [49.9, -8.2], [49.9, 2.1], [61.0, 2.1], [61.0, -8.2], [49.9, -8.2]
+        ];
+        
+        L.polyline(ukBounds, {
+            color: '#003366',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '8, 5'
+        }).addTo(map);
+        
+        // Fit map to UK bounds for optimal viewing
+        map.fitBounds([[49.5, -8.5], [61.0, 2.0]], {
+            padding: [20, 20]
+        });
+        
+        // Add major cities markers
+        const majorCities = [
+            {name: "London", coords: [51.5074, -0.1278]},
+            {name: "Birmingham", coords: [52.4862, -1.8904]},
+            {name: "Manchester", coords: [53.4808, -2.2426]},
+            {name: "Glasgow", coords: [55.8642, -4.2518]},
+            {name: "Edinburgh", coords: [55.9533, -3.1883]},
+            {name: "Liverpool", coords: [53.4084, -2.9916]},
+            {name: "Bristol", coords: [51.4545, -2.5879]},
+            {name: "Newcastle", coords: [54.9783, -1.6178]}
+        ];
+        
+        majorCities.forEach(city => {
+            L.marker(city.coords)
+                .bindPopup(`<strong>${city.name}</strong>`)
+                .addTo(map);
+        });
+        
+        // Initialize visualization
+        updateVisualization(2020);
+        
+        // Add climate data visualization layer
+        function addClimateInfoPanel() {
+            const info = L.control({position: 'topright'});
+            
+            info.onAdd = function(map) {
+                this._div = L.DomUtil.create('div', 'info-overlay');
+                this._div.style.cssText = `
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 10px;
+                    border-radius: 5px;
+                    font-family: Arial, sans-serif;
+                    font-size: 12px;
+                    max-width: 200px;
+                `;
+                this.update();
+                return this._div;
+            };
+            
+            info.update = function(props) {
+                const year = parseInt(document.getElementById('yearSlider').value);
+                const seaLevel = currentSeaLevelData[year];
+                const baselineLevel = historicalSeaLevelData[1993];
+                const relativeRise = seaLevel - baselineLevel;
+                const isProjection = year > 2020;
+                
+                this._div.innerHTML = `
+                    <h4>Climate Data (${year})</h4>
+                    <b>Sea Level Anomaly:</b> ${seaLevel.toFixed(1)}mm<br>
+                    <b>Rise since 1993:</b> ${relativeRise >= 0 ? '+' : ''}${relativeRise.toFixed(1)}mm<br>
+                    <b>Trend:</b> ${relativeRise > 0 ? '↗ Rising' : '↘ Below baseline'}<br>
+                    <b>Data Type:</b> ${isProjection ? 'Projection' : 'Historical'}<br>
+                    ${isProjection ? `<b>Scenario:</b> ${climateScenarios[currentScenario].name}<br>` : ''}
+                    <small><i>${isProjection ? 'Based on IPCC scenarios' : 'Met Office Climate Dashboard'}</i></small>
+                `;
+            };
+            
+            info.addTo(map);
+            
+            // Update info panel when year changes
+            yearSlider.addEventListener('input', () => info.update());
+        }
+        
+        addClimateInfoPanel();
+        
+        // Update legend based on scenario (placeholder for now)
+        function updateLegend() {
+            // Legend is already comprehensive, no update needed for now
+        }
+        
+        // Initialize with moderate scenario
+        updateVisualization(2020);
+    </script>
+</body>
+</html>
